@@ -3,62 +3,100 @@
     fluid
     grid-list-lg
   >
-    <v-layout
-      row
-      wrap
-    >
-      <template v-for="zone in zones">
-        <v-flex
-          :key="zone.zone"
-          xs10>
-          {{ zone.zone }}
-          <v-slider
-            v-model="zone.vo"
-            :max="38"
-            :min="0"
-            append-icon="volume_up"
-            color="white"
-            loading="true"
-            prepend-icon="volume_down"
-            thumb-color="green"
-            thumb-label="true"
-          />
-        </v-flex>
-        <v-flex
-          :class="$style.buttonContainer"
-          :key="zone.zone"
-          xs2>
-          <v-btn
-            color="error"
-            red>
-            <slot>
-              <font-awesome-icon
-                :class="$style.muteIcon"
-                icon="volume-mute"
-              />
-            </slot>
-          </v-btn>
-        </v-flex>
-        {{ zone }}
-      </template>
-    </v-layout>
+    <Error
+      v-if = "error"
+      :message = "error"
+      @retry="reload"
+    />
+    <Zone
+      v-for="zone in zones"
+      v-if="zone"
+      :key="zone.zone"
+      :zone="zone"
+      @zoneEvent="zoneCall($event)"
+    />
   </v-container>
 
 </template>
 
 
 <script>
+import Zone from '~/components/Zone'
+import Error from '~/components/Error'
+
+function pad2(val) {
+  if (typeof val === 'string') {
+    val = Number(val)
+  }
+  console.log('val', val)
+  return (val < 10 ? '0' : '') + val
+}
+
 export default {
+  components: {
+    Zone,
+    Error
+  },
+
   data() {
     return {
-      volume: 0,
-      zones: []
+      zones: [],
+      error: ''
     }
   },
 
   async asyncData({ app }) {
-    let { data } = await app.$axios.get('/zones')
-    return { zones: data }
+    try {
+      let { data } = await app.$axios.get('/zones')
+      console.log('Getting /Zone calls success!')
+      return { zones: data }
+    } catch (error) {
+      console.log('error in async data!, Is the Raspberry Pi Working?')
+      console.log('Error Code: ', error)
+      return {
+        error:
+          'Please check your network connection and make sure the Raspberry Pi is on and connected to the network!'
+      }
+    }
+  },
+
+  methods: {
+    // async volChange(val, zone) {
+    //   const formattedVal = pad2(val)
+    //   console.log('volChange', formattedVal)
+    //   await this.zoneCall('vo', val, zone)
+    // },
+
+    async zoneCall({ attr, value, zone }) {
+      try {
+        const formattedVal = pad2(value)
+        const result = await this.$axios.post(
+          `/zones/${zone}/${attr}`,
+          formattedVal,
+          {
+            headers: { 'Content-Type': 'text/plain' }
+          }
+        )
+        this.zones.find((item, index) => {
+          if (item.zone === zone) {
+            this.$set(this.zones, index, result.data)
+          }
+        })
+      } catch (error) {
+        showError(`There was an error setting ${attr}`)
+      }
+    },
+
+    reload() {
+      window.location.reload(true)
+    },
+
+    showError(message) {
+      this.error = message
+      setTimeout(() => {
+        this.error = ''
+      }, 3000)
+    }
   }
 }
 </script>
