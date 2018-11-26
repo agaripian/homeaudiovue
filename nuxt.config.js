@@ -34,6 +34,8 @@ module.exports = {
   */
   plugins: ['@/plugins/vuetify', '@/plugins/fontawesome'],
 
+  //server-middleware
+  serverMiddleware: ['~/server/api'],
   /*
   ** Nuxt.js modules
   */
