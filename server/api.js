@@ -104,7 +104,7 @@ app.get('/zonestest', function(req, res) {
     }
 ]`)
 })
-
+console.error('starting api!')
 connection.on("open", function () {
   var zones = {};
 
@@ -117,10 +117,11 @@ connection.on("open", function () {
         res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
         next();
   });
+  console.error('waiting for data')
 
   parser.on('data', function(data) {
-   // console.log(data);
-   // console.log('GOT DATA ^');
+    console.log(data);
+    console.log('GOT DATA ^');
     var zone = data.match(/#>(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
     if (zone != null) {
       zones[zone[1]] = {
@@ -139,7 +140,7 @@ connection.on("open", function () {
     }
   });
 
-  app.get('/api/zones', function(req, res) {
+  app.get('/zones', function(req, res) {
     var zoneCount = Object.keys(zones).length;
     if (ReQuery) {
       zones = {};
@@ -309,7 +310,7 @@ connection.on("open", function () {
     );
   });
 
-  app.listen(process.env.PORT || 8181);
+  //app.listen(process.env.PORT || 8181);
 });
 
 export default {

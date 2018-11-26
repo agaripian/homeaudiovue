@@ -167,10 +167,7 @@ export default {
     },
     sliderColor() {
       let val = this.zone.vo || 1
-      //const red = 100 + Number(val) * 5
       const red = (val / 38) * 1.05
-      console.log('red', red)
-      //return `rgb(${red}, 0, 0)`
       return `rgb(255, 0, 0, ${red})`
     }
   }
