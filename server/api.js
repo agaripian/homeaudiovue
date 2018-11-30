@@ -4,8 +4,18 @@ const bodyParser = require('body-parser');
 const SerialPort = require("serialport");
 const async      = require("async");
 const Readline   = require('@serialport/parser-readline')
+const persist     = require('./persist')
+// import express from 'express';
+// import bodyParser from 'body-parser';
+// import SerialPort from 'serialport';
+// import async from 'async';
+// import Readline from '@serialport/parser-readline';
 
 const app = express()
+
+console.log('persist config from app: ', persist)
+
+persist.zones = { 11: { name: 'masterbedroom' } }
 
 //var logFormat = "'[:date[iso]] - :remote-addr - :method :url :status :response-time ms - :res[content-length]b'";
 //app.use(morgan(logFormat));
@@ -22,87 +32,11 @@ var connection = new SerialPort(device, {
 var parser = new Readline({ delimiter: '\n' });
 connection.pipe(parser);
 
-app.get('/zonestest', function(req, res) {
-  res.json(`[
-    {
-        "zone": "11",
-        "pa": "00",
-        "pr": "00",
-        "mu": "00",
-        "dt": "00",
-        "vo": "29",
-        "tr": "07",
-        "bs": "07",
-        "bl": "10",
-        "ch": "04",
-        "ls": "00"
-    },
-    {
-        "zone": "12",
-        "pa": "00",
-        "pr": "00",
-        "mu": "00",
-        "dt": "00",
-        "vo": "38",
-        "tr": "07",
-        "bs": "07",
-        "bl": "10",
-        "ch": "04",
-        "ls": "00"
-    },
-    {
-        "zone": "13",
-        "pa": "00",
-        "pr": "00",
-        "mu": "00",
-        "dt": "00",
-        "vo": "20",
-        "tr": "07",
-        "bs": "07",
-        "bl": "10",
-        "ch": "04",
-        "ls": "00"
-    },
-    {
-        "zone": "14",
-        "pa": "00",
-        "pr": "00",
-        "mu": "00",
-        "dt": "00",
-        "vo": "20",
-        "tr": "07",
-        "bs": "07",
-        "bl": "10",
-        "ch": "04",
-        "ls": "00"
-    },
-    {
-        "zone": "15",
-        "pa": "00",
-        "pr": "00",
-        "mu": "00",
-        "dt": "00",
-        "vo": "20",
-        "tr": "07",
-        "bs": "07",
-        "bl": "10",
-        "ch": "04",
-        "ls": "00"
-    },
-    {
-        "zone": "16",
-        "pa": "00",
-        "pr": "00",
-        "mu": "00",
-        "dt": "00",
-        "vo": "20",
-        "tr": "07",
-        "bs": "07",
-        "bl": "10",
-        "ch": "04",
-        "ls": "00"
-    }
-]`)
+
+///TEMPPPpPPPP FOR TESTING!
+const testZones = [{"zone":"11","pa":"00","pr":"00","mu":"00","dt":"00","vo":"29","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"12","pa":"00","pr":"00","mu":"00","dt":"00","vo":"38","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"13","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"14","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"15","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"16","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"}]
+app.get('/zones', function(req, res) {
+  res.json(testZones)
 })
 console.error('starting api!')
 connection.on("open", function () {
@@ -125,6 +59,7 @@ connection.on("open", function () {
     var zone = data.match(/#>(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
     if (zone != null) {
       zones[zone[1]] = {
+        "name": persist.zones && persist.zones[11] && persist.zones[11].name || zone[1],
         "zone": zone[1],
         "pa": zone[2],
         "pr": zone[3],
@@ -285,10 +220,16 @@ connection.on("open", function () {
     var zoneCount = Object.keys(zones).length;
     var zonesCopy = { ...zones };
     zones = {}
-    Object.keys(zonesCopy).forEach(key => {
-      connection.write(`<${zonesCopy[key].zone}${req.attribute}${req.body}\r`);
-      console.log(`<${zonesCopy[key].zone}${req.attribute}${req.body}\r`);
-    })
+    function write(unit) {
+      connection.write(`<${unit}${req.attribute}${req.body}\r`)
+      console.log(`<${unit}${req.attribute}${req.body}\r`)
+    }
+
+    write(10);
+    AmpCount >= 2 && write(20);
+    AmpCount >= 3 && write(30);
+    console.log('writing all zones');
+
     connection.write("?10\r");
     AmpCount >= 2 && connection.write("?20\r");
     AmpCount >= 3 && connection.write("?30\r");
@@ -310,10 +251,12 @@ connection.on("open", function () {
     );
   });
 
-  //app.listen(process.env.PORT || 8181);
+  if (process.env.STANDALONE) {
+    app.listen(process.env.PORT || 3000)
+  }
 });
 
-export default {
+exports.default = {
   path: '/api',
   handler: app
-}
+};
