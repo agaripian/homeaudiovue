@@ -15,8 +15,6 @@ const app = express()
 
 console.log('persist config from app: ', persist)
 
-persist.zones = { 11: { name: 'masterbedroom' } }
-
 //var logFormat = "'[:date[iso]] - :remote-addr - :method :url :status :response-time ms - :res[content-length]b'";
 //app.use(morgan(logFormat));
 app.use(bodyParser.text({type: '*/*'}));
@@ -34,10 +32,10 @@ connection.pipe(parser);
 
 
 ///TEMPPPpPPPP FOR TESTING!
-const testZones = [{"zone":"11","pa":"00","pr":"00","mu":"00","dt":"00","vo":"29","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"12","pa":"00","pr":"00","mu":"00","dt":"00","vo":"38","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"13","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"14","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"15","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"16","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"}]
-app.get('/zones', function(req, res) {
-  res.json(testZones)
-})
+// const testZones = [{"zone":"11","pa":"00","pr":"00","mu":"00","dt":"00","vo":"29","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"12","pa":"00","pr":"00","mu":"00","dt":"00","vo":"38","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"13","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"14","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"15","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"16","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"}]
+// app.get('/zones', function(req, res) {
+//   res.json(testZones)
+// })
 console.error('starting api!')
 connection.on("open", function () {
   var zones = {};
@@ -53,13 +51,36 @@ connection.on("open", function () {
   });
   console.error('waiting for data')
 
+  function saveZoneDataToConfig(zoneId, attr, val) {
+    if (!persist.zones) {
+      persist.zones = {}
+    }
+    if (!persist.zones[zoneId]) {
+      persist.zones[zoneId] = {}
+    }
+    persist.zones[zoneId][attr] = val
+  }
+
+  function sortOrder(a, b) {
+    const aNum = Number(a.order)
+    const bNum = Number(b.order)
+    if (aNum < bNum) {
+      return -1
+    }
+    if (aNum > bNum) {
+      return 1
+    }
+    return 0
+  }
+
   parser.on('data', function(data) {
     console.log(data);
     console.log('GOT DATA ^');
     var zone = data.match(/#>(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
     if (zone != null) {
       zones[zone[1]] = {
-        "name": persist.zones && persist.zones[11] && persist.zones[11].name || zone[1],
+        "name": persist.zones && persist.zones[zone[1]] && persist.zones[zone[1]].name || zone[1],
+        "order": persist.zones && persist.zones[zone[1]] && persist.zones[zone[1]].order.toString() || "-1",
         "zone": zone[1],
         "pa": zone[2],
         "pr": zone[3],
@@ -72,6 +93,7 @@ connection.on("open", function () {
         "ch": zone[10],
         "ls": zone[11]
       };
+      console.log('returning zone', zones[zone[1]])
     }
   });
 
@@ -95,6 +117,9 @@ connection.on("open", function () {
         for(var o in zones) {
           zoneArray.push(zones[o]);
         }
+       // console.log('preSort', zoneArray)
+        zoneArray.sort(sortOrder)
+      //  console.log('postSort', zoneArray)
         res.json(zoneArray);
       }
     );
@@ -177,6 +202,16 @@ connection.on("open", function () {
         req.attribute = "ls";
         next();
         break;
+      case "name":
+        req.attribute = attribute;
+        req.notDevice = true;
+        next();
+        break;
+      case "order":
+        req.attribute = attribute;
+        req.notDevice = true;
+        next();
+        break;
       default:
         res.status(500).send({ error: attribute + ' is not a valid zone control attribute'});
     }
@@ -184,8 +219,12 @@ connection.on("open", function () {
 
   app.post('/zones/:zone/:attribute', function(req, res) {
     zones[req.zone] = undefined;
-    connection.write("<"+req.zone+req.attribute+req.body+"\r");
-    console.log("<"+req.zone+req.attribute+req.body+"\r")
+    if  (req.notDevice) {
+        saveZoneDataToConfig(req.zone, req.attribute, req.body)
+    } else {
+      connection.write("<"+req.zone+req.attribute+req.body+"\r");
+      console.log("<"+req.zone+req.attribute+req.body+"\r")
+    }
     connection.write("?10\r");
     AmpCount >= 2 && connection.write("?20\r");
     AmpCount >= 3 && connection.write("?30\r");
@@ -218,7 +257,6 @@ connection.on("open", function () {
 
   app.post('/allzones/:attribute', function(req, res) {
     var zoneCount = Object.keys(zones).length;
-    var zonesCopy = { ...zones };
     zones = {}
     function write(unit) {
       connection.write(`<${unit}${req.attribute}${req.body}\r`)
@@ -246,9 +284,24 @@ connection.on("open", function () {
         for(var o in zones) {
           zoneArray.push(zones[o]);
         }
+      //  console.log('preSort', zoneArray)
+        zoneArray.sort(sortOrder)
+     //   console.log('postSort', zoneArray)
         res.json(zoneArray);
       }
     );
+  });
+
+  app.post('/sortOrder', function(req, res) {
+    var zoneOrder = JSON.parse(req.body)
+    Object.keys(zoneOrder).forEach(key => {
+      saveZoneDataToConfig(key, 'order', zoneOrder[key].toString())
+    })
+    // This will force update the zones in memory order data
+    connection.write("?10\r");
+    AmpCount >= 2 && connection.write("?20\r");
+    AmpCount >= 3 && connection.write("?30\r");
+    res.json()
   });
 
   if (process.env.STANDALONE) {

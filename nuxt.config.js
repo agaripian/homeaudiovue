@@ -32,7 +32,11 @@ module.exports = {
   /*
   ** Plugins to load before mounting the App
   */
-  plugins: ['@/plugins/vuetify', '@/plugins/fontawesome'],
+  plugins: [
+    '@/plugins/vuetify',
+    '@/plugins/fontawesome',
+    '@/plugins/sortableTable'
+  ],
 
   //server-middleware
   serverMiddleware: ['~/server/api'],
@@ -54,7 +58,7 @@ module.exports = {
   */
   axios: {
     // See https://github.com/nuxt-community/axios-module#options
-    host: process.env.HOST || '127.0.0.1',
+    host: process.env.APIHOST || process.env.HOST || '127.0.0.1',
     port: process.env.PORT || 3000,
     prefix: '/api'
   },

@@ -27,6 +27,7 @@
     "nuxt": "^2.3.0",
     "sass-loader": "^7.1.0",
     "serialport": "^7.0.2",
+    "sortablejs": "^1.7.0",
     "vuetify": "^1.2.4"
   },
   "devDependencies": {

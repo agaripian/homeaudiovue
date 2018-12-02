@@ -40,7 +40,7 @@
     </v-flex>
     <v-flex
       xs6>
-      {{ zone.zone }}
+      <span v-if="zone.name"> {{ zone.name }}, </span> {{ zone.zone }}
       <v-slider
         :disabled="!isOn && !isAllZone || isMuted"
         v-model="zone.vo"

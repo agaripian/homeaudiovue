@@ -50,7 +50,8 @@
       transition="dialog-bottom-transition">
       <Settings
         :zones="zones"
-        @close="isSettingsDialogOpen=false"/>
+        @close="isSettingsDialogOpen=false"
+        @saveOrder="saveZonesOrder"/>
     </v-dialog>
     <v-dialog
       v-model="isControlAllDialogOpen"
@@ -79,6 +80,10 @@ function pad2(val) {
   return (val < 10 ? '0' : '') + val
 }
 
+function isNumeric(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n)
+}
+
 export default {
   components: {
     Zone,
@@ -100,14 +105,21 @@ export default {
   },
 
   computed: {
-    // masterZone() {
-    //   if (!this.zones.length) {
-    //     return {}
-    //   }
-    //   const masterZone = { ...this.zones[0] }
-    //   masterZone.zone = 'all'
-    //   console.log('masterZone', masterZone)
-    //   return masterZone
+    // sortedZones() {
+    //   const sortedZones = [...this.zones]
+    //   sortedZones.sort((a, b) => {
+    //     const aNum = Number(a.order)
+    //     const bNum = Number(b.order)
+    //     if (aNum < bNum) {
+    //       return -1
+    //     }
+    //     if (aNum > bNum) {
+    //       return 1
+    //     }
+    //     return 0
+    //   })
+    //   console.log('sortedZones computed :', sortedZones)
+    //   return sortedZones
     // }
   },
 
@@ -128,7 +140,7 @@ export default {
   methods: {
     async zoneCall({ attr, value, zone }) {
       try {
-        const formattedVal = pad2(value)
+        const formattedVal = (isNumeric(value) && pad2(value)) || value
         const result = await this.$axios.post(
           `/zones/${zone}/${attr}`,
           formattedVal,
@@ -161,6 +173,22 @@ export default {
       } catch (error) {
         showError(`There was an error setting allZones ${attr}`)
       }
+    },
+
+    saveZonesOrder({ oldIndex, newIndex }) {
+      console.log('saveZonesOrder called')
+      console.log('oldIndex: ', oldIndex)
+      console.log('newIndex: ', newIndex)
+      const movedItem = this.zones.splice(oldIndex, 1)[0]
+      console.log('movedItem :', movedItem)
+      this.zones.splice(newIndex, 0, movedItem)
+      const zonesOrder = {}
+      this.zones.forEach((item, index) => {
+        item.order = index
+        zonesOrder[item.zone] = item.order
+      })
+      this.$axios.post(`/sortOrder`, zonesOrder)
+      console.log(zonesOrder)
     },
 
     updateMasterZone(zones) {

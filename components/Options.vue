@@ -15,7 +15,16 @@
         <v-select
           :disabled="!isOn && !isAllZone"
           :items="option.items"
-          v-model="zone.ch"
+          v-model="zone[option.attr]"
+          @change="$emit('zoneEvent', { attr: option.attr, value: $event, zone:zone.zone })"
+        />
+      </v-flex>
+      <v-flex
+        v-if ="option.type === 'input'"
+        xs1>
+        <v-text-field
+          :disabled="!isOn && !isAllZone"
+          v-model="zone[option.attr]"
           @change="$emit('zoneEvent', { attr: option.attr, value: $event, zone:zone.zone })"
         />
       </v-flex>
@@ -51,6 +60,7 @@ export default {
       required: true
     }
   },
+
   computed: {
     isOn() {
       return this.zone.pr === '01'
@@ -60,12 +70,19 @@ export default {
     },
     options() {
       /*eslint-disable */
-      return [
+      let allOptions = [
         { key: 'Source', attr: 'ch', value: this.zone.ch, type: 'select', items: ['01', '02', '03', '04', '05', '06'] },
         { key: 'Trebble', attr: 'tr', value: this.zone.tr, type: 'slider', min: 0, max: 14 },
         { key: 'Base', attr: 'bs', value: this.zone.bs, type: 'slider', min: 0, max: 14 },
         { key: 'Balance', attr: 'bl', value: this.zone.bl, type: 'slider', min: 0, max: 20 },
       ]
+
+      if (!this.isAllZone) {
+        const name = { key: 'Name', attr: 'name', value: this.zone.name, type: 'input' }
+        allOptions.splice(1, 0, name)
+      }
+
+      return allOptions
       /*eslint-enable */
     }
   }
