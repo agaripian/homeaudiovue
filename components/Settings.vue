@@ -19,6 +19,17 @@
       </v-toolbar-items>
     </v-toolbar>
     {{ zones }}
+    <v-subheader>Amp Count</v-subheader>
+    <v-flex
+      xs1
+      pl-4>
+      <v-select
+        :items="[1,2,3]"
+        :value="ampCount"
+        @change="$emit('ampCountChange', $event)"
+      />
+    </v-flex>
+    <v-divider/>
     <v-subheader>Sort Order</v-subheader>
     <v-data-table
       v-sortable-table
@@ -88,6 +99,10 @@ export default {
   props: {
     zones: {
       type: Array,
+      required: true
+    },
+    ampCount: {
+      type: Number,
       required: true
     }
   },

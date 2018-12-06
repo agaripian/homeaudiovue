@@ -49,9 +49,11 @@
       hide-overlay
       transition="dialog-bottom-transition">
       <Settings
+        :amp-count="ampCount"
         :zones="zones"
         @close="isSettingsDialogOpen=false"
-        @saveOrder="saveZonesOrder"/>
+        @saveOrder="saveZonesOrder"
+        @ampCountChange="setAmpCount"/>
     </v-dialog>
     <v-dialog
       v-model="isControlAllDialogOpen"
@@ -95,6 +97,7 @@ export default {
   data() {
     return {
       zones: [],
+      ampCount: 1,
       error: '',
       title: 'HomeAudio',
       isSettingsDialogOpen: false,
@@ -137,7 +140,22 @@ export default {
       }
     }
   },
+
+  mounted() {
+    this.getAmpCount()
+  },
+
   methods: {
+    async getZones() {
+      try {
+        let { data } = await this.$axios.get('/zones')
+        console.log('Getting /Zone calls success!')
+        this.zones = data
+      } catch (error) {
+        this.showError(`There was an error getting zone information: ${error}`)
+      }
+    },
+
     async zoneCall({ attr, value, zone }) {
       try {
         const formattedVal = (isNumeric(value) && pad2(value)) || value
@@ -154,7 +172,7 @@ export default {
           }
         })
       } catch (error) {
-        showError(`There was an error setting ${attr}`)
+        this.showError(`There was an error setting ${attr}`)
       }
     },
 
@@ -171,7 +189,7 @@ export default {
         )
         this.zones = result.data
       } catch (error) {
-        showError(`There was an error setting allZones ${attr}`)
+        this.showError(`There was an error setting allZones ${attr}`)
       }
     },
 
@@ -189,6 +207,26 @@ export default {
       })
       this.$axios.post(`/sortOrder`, zonesOrder)
       console.log(zonesOrder)
+    },
+
+    async getAmpCount() {
+      try {
+        const result = await this.$axios.get('/ampCount')
+        this.ampCount = result.data.AmpCount
+      } catch (error) {
+        this.showError(`There was an error getting ampCount: ${error}`)
+      }
+    },
+
+    async setAmpCount(count) {
+      try {
+        await this.$axios.post('/ampCount', count, {
+          headers: { 'Content-Type': 'text/plain' }
+        })
+        this.getZones()
+      } catch (error) {
+        this.showError(`There was an error setting ampCount: ${error}`)
+      }
     },
 
     updateMasterZone(zones) {

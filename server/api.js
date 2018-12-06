@@ -2,13 +2,12 @@
 const express    = require('express')
 const bodyParser = require('body-parser');
 const SerialPort = require("serialport");
-const async      = require("async");
 const Readline   = require('@serialport/parser-readline')
-const persist     = require('./persist')
+const persist    = require('./persist')
+const when       = require('tiny-when')
 // import express from 'express';
 // import bodyParser from 'body-parser';
 // import SerialPort from 'serialport';
-// import async from 'async';
 // import Readline from '@serialport/parser-readline';
 
 const app = express()
@@ -21,28 +20,32 @@ app.use(bodyParser.text({type: '*/*'}));
 
 const ReQuery  = /^true$/i.test(process.env.REQUERY);
 const UseCORS  = /^true$/i.test(process.env.CORS);
-const AmpCount = process.env.AMPCOUNT || 1;
-var device     = process.env.DEVICE || "/dev/ttyUSB0";
-var connection = new SerialPort(device, {
+let AmpCount = persist.ampcount || process.env.AMPCOUNT || 1;
+let device     = persist.device || process.env.DEVICE || "/dev/ttyUSB0";
+const connection = new SerialPort(device, {
   baudRate: 9600
 });
 
 var parser = new Readline({ delimiter: '\n' });
 connection.pipe(parser);
 
-
+function sleep(ms){
+  return new Promise(resolve=>{
+      setTimeout(resolve,ms)
+  })
+}
 ///TEMPPPpPPPP FOR TESTING!
 // const testZones = [{"zone":"11","pa":"00","pr":"00","mu":"00","dt":"00","vo":"29","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"12","pa":"00","pr":"00","mu":"00","dt":"00","vo":"38","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"13","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"14","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"15","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"},{"zone":"16","pa":"00","pr":"00","mu":"00","dt":"00","vo":"20","tr":"07","bs":"07","bl":"10","ch":"04","ls":"00"}]
 // app.get('/zones', function(req, res) {
 //   res.json(testZones)
 // })
 console.error('starting api!')
-connection.on("open", function () {
+connection.on("open", async function () {
   var zones = {};
 
-  connection.write("?10\r");
-  AmpCount >= 2 && connection.write("?20\r");
-  AmpCount >= 3 && connection.write("?30\r");
+  // do the first query
+  queryAllZones()
+  console.log('AMP COUNT!!!!@@@: ', AmpCount)
 
   UseCORS && app.use(function(req, res, next) {
         res.header("Access-Control-Allow-Origin", "*");
@@ -74,8 +77,7 @@ connection.on("open", function () {
   }
 
   parser.on('data', function(data) {
-    console.log(data);
-    console.log('GOT DATA ^');
+    console.log('GOT DATA:', data);
     var zone = data.match(/#>(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
     if (zone != null) {
       zones[zone[1]] = {
@@ -93,36 +95,40 @@ connection.on("open", function () {
         "ch": zone[10],
         "ls": zone[11]
       };
-      console.log('returning zone', zones[zone[1]])
+      //console.log('returning zone', zones[zone[1]])
     }
   });
 
-  app.get('/zones', function(req, res) {
-    var zoneCount = Object.keys(zones).length;
-    if (ReQuery) {
-      zones = {};
-      connection.write("?10\r");
-      AmpCount >= 2 && connection.write("?20\r");
-      AmpCount >= 3 && connection.write("?30\r");
+  async function queryAllZones(){
+    // clear zones object which is written to from parser on data event
+    zones = {};
+    // create an amps array based on count of amps [1, 2, 3]
+    const amps = [...Array(AmpCount)].map((_, i) => i+1)
+    // loop through each amp and write ?10\r, ?20\r, ?30\r
+    // wait for zones.length to equal 6 * number of amps 6 zones per amp
+    for (const amp of amps) {
+      console.log('currentAmp', amp);
+      connection.write(`?${amp}0\r`);
+      const condition = () => Object.keys(zones).length === amp * 6
+      await when(condition, { maxChecks: 100, intervalInMs: 50 })
     }
-    async.until(
-      function () {
-          return (typeof zones !== "undefined" && Object.keys(zones).length === zoneCount);
-        },
-      function (callback) {
-        setTimeout(callback, 10);
-      },
-      function () {
-        var zoneArray = [];
-        for(var o in zones) {
-          zoneArray.push(zones[o]);
-        }
-       // console.log('preSort', zoneArray)
-        zoneArray.sort(sortOrder)
-      //  console.log('postSort', zoneArray)
-        res.json(zoneArray);
-      }
-    );
+    const zoneArray = [];
+    for(var o in zones) {
+      zoneArray.push(zones[o]);
+    }
+    zoneArray.sort(sortOrder)
+    return zoneArray
+  }
+
+  app.get('/zones', async function(req, res) {
+    try {
+      const zoneArray = await queryAllZones()
+      console.log('got allZones!')
+      res.json(zoneArray)
+    }
+    catch {
+      res.status(500).send({ error: 'Cant query all zones!' });
+    }
   });
 
   // Only allow query and control of single zones
@@ -135,16 +141,13 @@ connection.on("open", function () {
     }
   });
 
-  app.get('/zones/:zone', function(req, res) {
-    async.until(
-      function () { return typeof zones[req.zone] !== "undefined"; },
-      function (callback) {
-        setTimeout(callback, 10);
-      },
-      function () {
-        res.json(zones[req.zone]);
-      }
-    );
+  app.get('/zones/:zone', async function(req, res) {
+    try {
+      await queryAllZones()
+      res.json(zones[req.zone]);
+    } catch {
+      res.status(500).send({ error: 'cant get zone info '+ req.zone});
+    }
   });
 
   // Validate and standarize control attributes
@@ -217,45 +220,32 @@ connection.on("open", function () {
     }
   });
 
-  app.post('/zones/:zone/:attribute', function(req, res) {
-    zones[req.zone] = undefined;
+  app.post('/zones/:zone/:attribute', async function(req, res) {
     if  (req.notDevice) {
         saveZoneDataToConfig(req.zone, req.attribute, req.body)
     } else {
       connection.write("<"+req.zone+req.attribute+req.body+"\r");
       console.log("<"+req.zone+req.attribute+req.body+"\r")
     }
-    connection.write("?10\r");
-    AmpCount >= 2 && connection.write("?20\r");
-    AmpCount >= 3 && connection.write("?30\r");
-    async.until(
-      function () { return typeof zones[req.zone] !== "undefined"; },
-      function (callback) {
-        setTimeout(callback, 10);
-      },
-      function () {
-        res.json(zones[req.zone]);
-      }
-    );
+    try {
+      await queryAllZones()
+      res.json(zones[req.zone]);
+    } catch {
+      res.status(500).send({ error: req.attribute + ' cant be set on zone ' + req.zone});
+    }
   });
 
-  app.get('/zones/:zone/:attribute', function(req, res) {
-    zones[req.zone] = undefined;
-    connection.write("?10\r");
-    AmpCount >= 2 && connection.write("?20\r");
-    AmpCount >= 3 && connection.write("?30\r");
-    async.until(
-      function () { return typeof zones[req.zone] !== "undefined"; },
-      function (callback) {
-        setTimeout(callback, 10);
-      },
-      function () {
-        res.send(zones[req.zone][req.attribute]);
-      }
-    );
+  app.get('/zones/:zone/:attribute', async function(req, res) {
+    try {
+      //this can be optimized to query the zone only
+      await queryAllZones()
+      res.send(zones[req.zone][req.attribute]);
+    } catch {
+      res.status(500).send({ error: req.attribute + ' cant be read from ' + req.zone});
+    }
   });
 
-  app.post('/allzones/:attribute', function(req, res) {
+  app.post('/allzones/:attribute', async function(req, res) {
     var zoneCount = Object.keys(zones).length;
     zones = {}
     function write(unit) {
@@ -268,40 +258,36 @@ connection.on("open", function () {
     AmpCount >= 3 && write(30);
     console.log('writing all zones');
 
-    connection.write("?10\r");
-    AmpCount >= 2 && connection.write("?20\r");
-    AmpCount >= 3 && connection.write("?30\r");
-
-    async.until(
-      function () {
-          return (typeof zones !== "undefined" && Object.keys(zones).length === zoneCount);
-        },
-      function (callback) {
-        setTimeout(callback, 10);
-      },
-      function () {
-        var zoneArray = [];
-        for(var o in zones) {
-          zoneArray.push(zones[o]);
-        }
-      //  console.log('preSort', zoneArray)
-        zoneArray.sort(sortOrder)
-     //   console.log('postSort', zoneArray)
-        res.json(zoneArray);
-      }
-    );
+    try {
+      //this can be optimized to query the zone only
+      const zoneArray = await queryAllZones()
+      res.json(zoneArray);
+    } catch {
+      res.status(500).send({ error: 'all zones could not be set'});
+    }
   });
 
-  app.post('/sortOrder', function(req, res) {
+  app.post('/sortOrder', async function(req, res) {
     var zoneOrder = JSON.parse(req.body)
     Object.keys(zoneOrder).forEach(key => {
       saveZoneDataToConfig(key, 'order', zoneOrder[key].toString())
     })
     // This will force update the zones in memory order data
-    connection.write("?10\r");
-    AmpCount >= 2 && connection.write("?20\r");
-    AmpCount >= 3 && connection.write("?30\r");
-    res.json()
+    await queryAllZones()
+  });
+
+  app.get('/ampcount', function(req, res) {
+    res.json({AmpCount})
+  });
+
+  app.post('/ampcount', function(req, res) {
+    const count = Number(req.body)
+    console.log('count', count)
+    if (count === 1 || count === 2 || count === 3) {
+      persist.ampcount = AmpCount = count
+      return res.json({AmpCount})
+    }
+    return res.status(500).send({ error: req.body + ' is not a valid amp count'});
   });
 
   if (process.env.STANDALONE) {
