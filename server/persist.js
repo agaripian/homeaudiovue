@@ -1,5 +1,5 @@
 const fs = require('fs')
-const CONFIG_FILE_NAME = 'persistConfig.txt'
+const CONFIG_FILE_NAME = 'persistConfig.json'
 
 const handler = {
   get(target, key) {
@@ -12,7 +12,7 @@ const handler = {
 
   set(target, key, value) {
     target[key] = value
-    console.log('setCalled key:', key, 'value:', value)
+    //console.log('setCalled key:', key, 'value:', value)
     writeConfig(proxy)
   }
 }
@@ -28,11 +28,20 @@ function writeConfig(config) {
 let config = {}
 
 try {
-  const fileConfig = fs.readFileSync(CONFIG_FILE_NAME, 'utf8')
-  config = JSON.parse(fileConfig)
-  console.log('config', JSON.stringify(config))
+  if (fs.existsSync(CONFIG_FILE_NAME)) {
+    const fileConfig = fs.readFileSync(CONFIG_FILE_NAME, 'utf8')
+    config = JSON.parse(fileConfig)
+    console.log('config', JSON.stringify(config))
+  }
+  console.log('Config file not found!')
 } catch (err) {
-  console.error('Config not found')
+  if (fs.existsSync(CONFIG_FILE_NAME)) {
+    fs.renameSync(
+      CONFIG_FILE_NAME,
+      CONFIG_FILE_NAME + '_' + Date.now().toString()
+    )
+    console.log('Config File renamed due to corruption');
+  }
 }
 
 const proxy = new Proxy(config, handler)
