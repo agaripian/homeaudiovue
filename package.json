@@ -19,7 +19,6 @@
     "@fortawesome/vue-fontawesome": "^0.1.2",
     "@nuxtjs/axios": "^5.0.0",
     "@nuxtjs/style-resources": "^0.1.1",
-    "async": "^2.6.1",
     "body-parser": "^1.18.3",
     "cross-env": "^5.2.0",
     "express": "^4.16.3",
@@ -27,6 +26,8 @@
     "nuxt": "^2.3.0",
     "sass-loader": "^7.1.0",
     "serialport": "^7.0.2",
+    "sortablejs": "^1.7.0",
+    "tiny-when": "^1.0.1",
     "vuetify": "^1.2.4"
   },
   "devDependencies": {

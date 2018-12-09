@@ -49,8 +49,11 @@
       hide-overlay
       transition="dialog-bottom-transition">
       <Settings
+        :amp-count="ampCount"
         :zones="zones"
-        @close="isSettingsDialogOpen=false"/>
+        @close="isSettingsDialogOpen=false"
+        @saveOrder="saveZonesOrder"
+        @ampCountChange="setAmpCount"/>
     </v-dialog>
     <v-dialog
       v-model="isControlAllDialogOpen"
@@ -79,6 +82,10 @@ function pad2(val) {
   return (val < 10 ? '0' : '') + val
 }
 
+function isNumeric(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n)
+}
+
 export default {
   components: {
     Zone,
@@ -90,6 +97,7 @@ export default {
   data() {
     return {
       zones: [],
+      ampCount: 1,
       error: '',
       title: 'HomeAudio',
       isSettingsDialogOpen: false,
@@ -100,14 +108,21 @@ export default {
   },
 
   computed: {
-    // masterZone() {
-    //   if (!this.zones.length) {
-    //     return {}
-    //   }
-    //   const masterZone = { ...this.zones[0] }
-    //   masterZone.zone = 'all'
-    //   console.log('masterZone', masterZone)
-    //   return masterZone
+    // sortedZones() {
+    //   const sortedZones = [...this.zones]
+    //   sortedZones.sort((a, b) => {
+    //     const aNum = Number(a.order)
+    //     const bNum = Number(b.order)
+    //     if (aNum < bNum) {
+    //       return -1
+    //     }
+    //     if (aNum > bNum) {
+    //       return 1
+    //     }
+    //     return 0
+    //   })
+    //   console.log('sortedZones computed :', sortedZones)
+    //   return sortedZones
     // }
   },
 
@@ -125,10 +140,25 @@ export default {
       }
     }
   },
+
+  mounted() {
+    this.getAmpCount()
+  },
+
   methods: {
+    async getZones() {
+      try {
+        let { data } = await this.$axios.get('/zones')
+        console.log('Getting /Zone calls success!')
+        this.zones = data
+      } catch (error) {
+        this.showError(`There was an error getting zone information: ${error}`)
+      }
+    },
+
     async zoneCall({ attr, value, zone }) {
       try {
-        const formattedVal = pad2(value)
+        const formattedVal = (isNumeric(value) && pad2(value)) || value
         const result = await this.$axios.post(
           `/zones/${zone}/${attr}`,
           formattedVal,
@@ -142,7 +172,7 @@ export default {
           }
         })
       } catch (error) {
-        showError(`There was an error setting ${attr}`)
+        this.showError(`There was an error setting ${attr}`)
       }
     },
 
@@ -159,7 +189,43 @@ export default {
         )
         this.zones = result.data
       } catch (error) {
-        showError(`There was an error setting allZones ${attr}`)
+        this.showError(`There was an error setting allZones ${attr}`)
+      }
+    },
+
+    saveZonesOrder({ oldIndex, newIndex }) {
+      console.log('saveZonesOrder called')
+      console.log('oldIndex: ', oldIndex)
+      console.log('newIndex: ', newIndex)
+      const movedItem = this.zones.splice(oldIndex, 1)[0]
+      console.log('movedItem :', movedItem)
+      this.zones.splice(newIndex, 0, movedItem)
+      const zonesOrder = {}
+      this.zones.forEach((item, index) => {
+        item.order = index
+        zonesOrder[item.zone] = item.order
+      })
+      this.$axios.post(`/sortOrder`, zonesOrder)
+      console.log(zonesOrder)
+    },
+
+    async getAmpCount() {
+      try {
+        const result = await this.$axios.get('/ampCount')
+        this.ampCount = result.data.AmpCount
+      } catch (error) {
+        this.showError(`There was an error getting ampCount: ${error}`)
+      }
+    },
+
+    async setAmpCount(count) {
+      try {
+        await this.$axios.post('/ampCount', count, {
+          headers: { 'Content-Type': 'text/plain' }
+        })
+        this.getZones()
+      } catch (error) {
+        this.showError(`There was an error setting ampCount: ${error}`)
       }
     },
 
