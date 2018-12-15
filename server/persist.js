@@ -32,6 +32,7 @@ try {
     const fileConfig = fs.readFileSync(CONFIG_FILE_NAME, 'utf8')
     config = JSON.parse(fileConfig)
     console.log('config', JSON.stringify(config))
+    return
   }
   console.log('Config file not found!')
 } catch (err) {

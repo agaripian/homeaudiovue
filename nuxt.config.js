@@ -1,4 +1,5 @@
 const pkg = require('./package')
+const ip = require('ip')
 
 module.exports = {
   mode: 'universal',
@@ -58,7 +59,7 @@ module.exports = {
   */
   axios: {
     // See https://github.com/nuxt-community/axios-module#options
-    host: process.env.APIHOST || '',
+    host: process.env.APIHOST || ip.address(),
     port: process.env.PORT || 3000,
     prefix: '/api'
   },
