@@ -1,7 +1,6 @@
 import Vue from 'vue'
 import Sortable from 'sortablejs'
 
-let sortable
 Vue.directive('sortableTable', {
   bind(el, binding, vnode) {
     let sortableElement = el.getElementsByTagName('tbody')[0]
@@ -13,6 +12,6 @@ Vue.directive('sortableTable', {
       }
     }
 
-    sortable = Sortable.create(sortableElement, options)
+    Sortable.create(sortableElement, options)
   }
 })

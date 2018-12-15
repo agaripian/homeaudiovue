@@ -124,10 +124,10 @@
         :zone="zone"
         @zoneEvent="$emit('zoneEvent', $event)"/>
     </v-flex>
-    <v-flex
+    <!--<v-flex
       xs12>
       {{ zone }}
-    </v-flex>
+    </v-flex>-->
   </v-layout>
 </template>
 
