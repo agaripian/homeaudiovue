@@ -58,7 +58,7 @@ module.exports = {
   */
   axios: {
     // See https://github.com/nuxt-community/axios-module#options
-    host: process.env.APIHOST || process.env.HOST || '127.0.0.1',
+    host: process.env.APIHOST || '',
     port: process.env.PORT || 3000,
     prefix: '/api'
   },
