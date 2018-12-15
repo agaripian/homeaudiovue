@@ -32,16 +32,16 @@ try {
     const fileConfig = fs.readFileSync(CONFIG_FILE_NAME, 'utf8')
     config = JSON.parse(fileConfig)
     console.log('config', JSON.stringify(config))
-    return
+  } else {
+    console.log('Config file not found!')
   }
-  console.log('Config file not found!')
 } catch (err) {
   if (fs.existsSync(CONFIG_FILE_NAME)) {
     fs.renameSync(
       CONFIG_FILE_NAME,
       CONFIG_FILE_NAME + '_' + Date.now().toString()
     )
-    console.log('Config File renamed due to corruption');
+    console.log('Config File renamed due to corruption')
   }
 }
 
