@@ -81,4 +81,4 @@ dist
 .idea
 
 #persist config
-persistConfig.txt
+persistConfig.json*

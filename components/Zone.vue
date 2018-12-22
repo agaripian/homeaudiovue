@@ -4,6 +4,7 @@
     wrap
   >
     <v-flex
+      ref="zone"
       :class="$style.buttonContainer"
       xs2>
       <v-btn
@@ -39,8 +40,10 @@
       </v-btn>
     </v-flex>
     <v-flex
-      xs6>
-      <span v-if="zone.name"> {{ zone.name }}, </span> {{ zone.zone }}
+      xs8>
+      <span
+        v-if="zone.name"
+      > {{ zone.name }} </span>
       <v-slider
         :disabled="!isOn && !isAllZone || isMuted"
         v-model="zone.vo"
@@ -48,13 +51,23 @@
         :max="38"
         :min="0"
         :thumb-label="true"
-        append-icon="volume_up"
-        class="black-text"
-        prepend-icon="volume_down"
         thumb-color="white"
         thumb-size="50"
-        @change="$emit('zoneEvent', { attr: 'vo', value: $event, zone:zone.zone })"
-      />
+        @contextmenu.native="selectEvent"
+        @change="$emit('zoneEvent', { attr: 'vo', value: $event, zone:zone.zone })">
+        <v-icon
+          slot="prepend"
+          @click="zone.vo = (Number(zone.vo) - 3); $emit('zoneEvent', { attr: 'vo', value: zone.vo.toString(), zone:zone.zone })"
+        >
+          volume_down
+        </v-icon>
+        <v-icon
+          slot="append"
+          @click="zone.vo = (Number(zone.vo) + 3); $emit('zoneEvent', { attr: 'vo', value: zone.vo.toString(), zone:zone.zone })"
+        >
+          volume_up
+        </v-icon>
+      </v-slider>
     </v-flex>
     <v-flex
       v-if="!isAllZone"
@@ -70,7 +83,7 @@
         <v-icon> settings </v-icon>
       </v-btn>
     </v-flex>
-    <v-flex
+    <!--<v-flex
       :class="$style.buttonContainer"
       xs2>
       <v-btn
@@ -116,7 +129,7 @@
           />
         </slot>
       </v-btn>
-    </v-flex>
+    </v-flex> -->
     <v-flex
       v-if="isExpanded"
       xs12>
@@ -124,10 +137,6 @@
         :zone="zone"
         @zoneEvent="$emit('zoneEvent', $event)"/>
     </v-flex>
-    <!--<v-flex
-      xs12>
-      {{ zone }}
-    </v-flex>-->
   </v-layout>
 </template>
 
@@ -143,19 +152,22 @@ export default {
     zone: {
       type: Object,
       required: true
-    },
-    optionsExpanded: {
-      type: Boolean,
-      default: () => false,
-      required: false
     }
   },
   data() {
     return {
-      isExpanded: this.optionsExpanded
+      optionsExpanded: false
     }
   },
   computed: {
+    isExpanded: {
+      get() {
+        return this.optionsExpanded && this.isOn
+      },
+      set(val) {
+        this.optionsExpanded = val
+      }
+    },
     isOn() {
       return this.zone.pr === '01'
     },
@@ -169,6 +181,13 @@ export default {
       let val = this.zone.vo || 1
       const red = (val / 38) * 1.05
       return `rgb(255, 0, 0, ${red})`
+    }
+  },
+
+  methods: {
+    selectEvent(e) {
+      e.preventDefault()
+      return
     }
   }
 }
@@ -191,5 +210,8 @@ export default {
   color: black;
   font-size: 18px;
   font-weight: bold;
+}
+.v-slider > input {
+  user-select: none;
 }
 </style>

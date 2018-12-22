@@ -18,7 +18,6 @@
           @click="$emit('close')">Save</v-btn>
       </v-toolbar-items>
     </v-toolbar>
-    {{ zones }}
     <v-subheader>Amp Count</v-subheader>
     <v-flex
       xs1
