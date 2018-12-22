@@ -30,14 +30,6 @@
         @click="$emit('zoneEvent', { attr: 'pr', value: '00' , zone:zone.zone })">
         <v-icon> power_off </v-icon>
       </v-btn>
-      <v-btn
-        v-if="isAllZone"
-        class="grey black--text lighten-2"
-        fab
-        small
-        @click="$emit('zoneEvent', { attr: 'pr', value: '01' , zone:zone.zone })">
-        <v-icon> power </v-icon>
-      </v-btn>
     </v-flex>
     <v-flex
       xs8>
@@ -70,6 +62,19 @@
       </v-slider>
     </v-flex>
     <v-flex
+      v-if="isAllZone"
+      ref="zone"
+      :class="$style.buttonContainer"
+      xs2>
+      <v-btn
+        class="grey black--text lighten-2"
+        fab
+        small
+        @click="$emit('zoneEvent', { attr: 'pr', value: '01' , zone:zone.zone })">
+        <v-icon> power </v-icon>
+      </v-btn>
+    </v-flex>
+    <v-flex
       v-if="!isAllZone"
       :class="$style.buttonContainer"
       xs2>
@@ -83,55 +88,8 @@
         <v-icon> settings </v-icon>
       </v-btn>
     </v-flex>
-    <!--<v-flex
-      :class="$style.buttonContainer"
-      xs2>
-      <v-btn
-        v-if="!isAllZone"
-        :disabled="!isOn"
-        :class="[isMuted ? 'error' : 'grey  black--text lighten-2']"
-        fab
-        red
-        small
-        @click="$emit('zoneEvent', { attr: 'mu', value: isMuted ? '00':'01' , zone:zone.zone })">
-        <slot>
-          <font-awesome-icon
-            :class="$style.icon"
-            icon="volume-mute"
-          />
-        </slot>
-      </v-btn>
-      <v-btn
-        v-if="isAllZone"
-        class="grey black--text lighten-2"
-        fab
-        red
-        small
-        @click="$emit('zoneEvent', { attr: 'mu', value: '01' , zone:zone.zone })">
-        <slot>
-          <font-awesome-icon
-            :class="$style.icon"
-            icon="volume-mute"
-          />
-        </slot>
-      </v-btn>
-      <v-btn
-        v-if="isAllZone"
-        class="grey black--text lighten-2"
-        fab
-        red
-        small
-        @click="$emit('zoneEvent', { attr: 'mu', value: '00' , zone:zone.zone })">
-        <slot>
-          <font-awesome-icon
-            :class="$style.icon"
-            icon="volume-up"
-          />
-        </slot>
-      </v-btn>
-    </v-flex> -->
     <v-flex
-      v-if="isExpanded"
+      v-if="isExpanded || isAllZone"
       xs12>
       <Options
         :zone="zone"
