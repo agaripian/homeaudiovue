@@ -11,7 +11,7 @@
       </v-flex>
       <v-flex
         v-if ="option.type === 'select'"
-        xs1>
+        xs3>
         <v-select
           :disabled="!isOn && !isAllZone"
           :items="option.items"
@@ -21,7 +21,7 @@
       </v-flex>
       <v-flex
         v-if ="option.type === 'input'"
-        xs1>
+        xs7>
         <v-text-field
           :disabled="!isOn && !isAllZone"
           v-model="zone[option.attr]"
@@ -30,7 +30,7 @@
       </v-flex>
       <v-flex
         v-if ="option.type === 'slider'"
-        xs6>
+        xs7>
         <v-slider
           :disabled="!isOn && !isAllZone"
           v-model="zone[option.attr]"

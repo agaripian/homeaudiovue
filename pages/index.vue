@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="parent">
     <v-toolbar
       fixed
       app
@@ -29,6 +29,7 @@
     <v-container
       fluid
       grid-list-lg
+      pa-0
     >
       <Error
         v-if = "error"
@@ -57,6 +58,7 @@
     </v-dialog>
     <v-dialog
       v-model="isControlAllDialogOpen"
+      fullscreen
       hide-overlay
       transition="dialog-transition">
       <ControlAll
@@ -105,25 +107,6 @@ export default {
       // eslint-disable-next-line
       masterZone: { 'zone': 'all', 'pa': '00', 'pr': '00', 'mu': '00', 'dt': '00', 'vo': '15', 'tr': '07', 'bs': '07', 'bl': '10', 'ch': '01', 'ls': '00' }
     }
-  },
-
-  computed: {
-    // sortedZones() {
-    //   const sortedZones = [...this.zones]
-    //   sortedZones.sort((a, b) => {
-    //     const aNum = Number(a.order)
-    //     const bNum = Number(b.order)
-    //     if (aNum < bNum) {
-    //       return -1
-    //     }
-    //     if (aNum > bNum) {
-    //       return 1
-    //     }
-    //     return 0
-    //   })
-    //   console.log('sortedZones computed :', sortedZones)
-    //   return sortedZones
-    // }
   },
 
   async asyncData({ app }) {
@@ -227,37 +210,6 @@ export default {
       } catch (error) {
         this.showError(`There was an error setting ampCount: ${error}`)
       }
-    },
-
-    updateMasterZone(zones) {
-      // let masterValues = { pr: '00', mu: '00', ch: '01' }
-      // let { pr, mu, ch } = zonez[0]
-      // let prMatch = true
-      // let muMatch = true
-      // zones.every(zone => {
-      //   if (zone.pr !== pr) {
-      //     prMatch = false
-      //   }
-      //   if (zone.mu !== mu) {
-      //     prMatch = false
-      //   }
-      // })
-      // newValue.forEach(zone => {
-      //   console.log('zone', zone.zone)
-      //   Object.keys(zone).forEach(key => {
-      //     if (!masterValues[key]) {
-      //       return
-      //     }
-      //     if (!masterPower) {
-      //       masterPower = masterValues['pr']
-      //     } else {
-      //       if ( masterPower !== masterValues['pr'])
-      //     }
-      //     masterValues[key] = zone[key]
-      //   })
-      // })
-      // Object.assign(this.masterZone, masterValues)
-      console.log('masterZone', this.masterZone)
     },
 
     reload() {
