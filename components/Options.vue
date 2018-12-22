@@ -37,14 +37,24 @@
           :max="option.max"
           :min="option.min"
           :thumb-label="true"
-          append-icon="add"
           class="black-text"
-          prepend-icon="remove"
           thumb-color="white"
           color="white"
           thumb-size="50"
-          @change="$emit('zoneEvent', { attr: option.attr, value: $event, zone:zone.zone })"
-        />
+        >
+          <v-icon
+            slot="prepend"
+            @click="zone[option.attr] = (Number(zone[option.attr]) - 1); $emit('zoneEvent', { attr: option.attr, value: zone[option.attr].toString(), zone:zone.zone })"
+          >
+            remove
+          </v-icon>
+          <v-icon
+            slot="append"
+            @click="zone[option.attr] = (Number(zone[option.attr]) + 1); $emit('zoneEvent', { attr: option.attr, value: zone[option.attr].toString(), zone:zone.zone })"
+          >
+            add
+          </v-icon>
+        </v-slider>
       </v-flex>
       <v-flex xs3/>
     </v-layout>

@@ -101,7 +101,7 @@ export default {
       zones: [],
       ampCount: 1,
       error: '',
-      title: 'HomeAudio',
+      title: '',
       isSettingsDialogOpen: false,
       isControlAllDialogOpen: false,
       // eslint-disable-next-line
